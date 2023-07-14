@@ -42,9 +42,9 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
-cmake-build-debug-system
+cmake-build-default-system
 
-out/build
+out/glfw-build
 [Bb][Uu][Ii][Ll][Dd]
 
 ./.idea
