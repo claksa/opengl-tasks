@@ -17,6 +17,13 @@ const char* fragmentShaderSource = "#version 330 core\n"
                                    "    fragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
                                    "}";
 
+const char* fragmentShaderSource2  = "#version 330 core\n"
+                                     "out vec4 fragColor;\n"
+                                     "\n"
+                                     "void main() {\n"
+                                     "    fragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+                                     "}";
+
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
@@ -92,6 +99,7 @@ void bindShape(GLuint vbo, void* vertices) {
     glEnableVertexAttribArray(0);
 }
 
+//todo: try 1 VAO and multiple vbos
 
 int main() {
 
@@ -129,11 +137,21 @@ int main() {
     glCompileShader(fragmentShader);
     checkShaderComp(fragmentShader);
 
+    unsigned int fragmentShader2 = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader2, 1, &fragmentShaderSource2, nullptr);
+    glCompileShader(fragmentShader2);
+    checkShaderComp(fragmentShader2);
+
     // link shaders
     unsigned int shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+
+    unsigned int shaderProgram2 = glCreateProgram();
+    glAttachShader(shaderProgram2, vertexShader);
+    glAttachShader(shaderProgram2, fragmentShader2);
+    glLinkProgram(shaderProgram2);
 
     int success;
     char infoLog[512];
@@ -180,10 +198,10 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
-
         glBindVertexArray(VAOs[1]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
+        glUseProgram(shaderProgram2);
         glBindVertexArray(VAOs[0]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -196,6 +214,7 @@ int main() {
     glDeleteVertexArrays(2, VAOs);
     glDeleteBuffers(2, VBOs);
     glDeleteProgram(shaderProgram);
+    glDeleteProgram(shaderProgram2);
 
     glfwTerminate();
 }
