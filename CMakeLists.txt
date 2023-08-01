@@ -5,7 +5,7 @@ set(GLAD_SRC external/glad/src)
 set(SAMPLES src/samples)
 
 
-add_executable(${PROJECT_NAME} ${GLAD_SRC}/glad.c utils.hpp main.cpp)
+add_executable(${PROJECT_NAME} ${GLAD_SRC}/glad.c utils.hpp main.cpp shader.hpp)
 
 add_subdirectory(external/glfw)
 
