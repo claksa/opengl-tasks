@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include <iostream>
+#include <valarray>
 
 using namespace std;
 
@@ -12,17 +13,12 @@ const char* vertexShaderSource = "#version 330 core\n"
 
 const char* fragmentShaderSource = "#version 330 core\n"
                                    "out vec4 fragColor;\n"
+                                   "uniform vec4 ourColor;\n"
                                    "\n"
                                    "void main() {\n"
-                                   "    fragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                                   "    fragColor = ourColor;\n"
                                    "}";
 
-const char* fragmentShaderSource2  = "#version 330 core\n"
-                                     "out vec4 fragColor;\n"
-                                     "\n"
-                                     "void main() {\n"
-                                     "    fragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-                                     "}";
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -51,19 +47,6 @@ float triangle2[] = {
         0.9f, 0.5f, 0.0f
 };
 
-float verts[] = {
-        0.5f, 0.5f, 0.0f, // top right
-        0.5f, -0.5f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f // top left
-};
-
-// indexed drawing
-unsigned int indexes[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3 // second triangle
-};
-
 void processInput(GLFWwindow *window)
 {
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -90,13 +73,6 @@ void checkShaderComp(unsigned int &shader) {
     } else {
         std::cout << "shader is compiled successfully" << std::endl;
     }
-}
-
-void bindShape(GLuint vbo, void* vertices) {
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*) nullptr);
-    glEnableVertexAttribArray(0);
 }
 
 int main() {
@@ -136,21 +112,12 @@ int main() {
     glCompileShader(fragmentShader);
     checkShaderComp(fragmentShader);
 
-    unsigned int fragmentShader2 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader2, 1, &fragmentShaderSource2, nullptr);
-    glCompileShader(fragmentShader2);
-    checkShaderComp(fragmentShader2);
-
     // link shaders
-    unsigned int shaderProgram = glCreateProgram();
+    auto shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
-    unsigned int shaderProgram2 = glCreateProgram();
-    glAttachShader(shaderProgram2, vertexShader);
-    glAttachShader(shaderProgram2, fragmentShader2);
-    glLinkProgram(shaderProgram2);
 
     int success;
     char infoLog[512];
@@ -163,41 +130,20 @@ int main() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    GLuint VAOs[2], VBOs[2], VAO;
+    GLuint VBO, VAO;
 
-    glGenBuffers(2, VBOs);
+    glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
 
     glBindVertexArray(VAO);
-    // todo: attribFormat vs attribPointer ??
-    glVertexAttribFormat(0, 3, GL_FLOAT, GL_FALSE, 0); // set up the format. without a buffer object
-    glVertexAttribBinding(0, 0); //Sets up where the buffer object comes from
-    glEnableVertexAttribArray(0); // enable vao
-    glBindVertexArray(0);
-
-    // 1st triangle
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     // allocates user data into the buffer's memory
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1), triangle1, GL_STATIC_DRAW);
-    // registered VBO as the vertex attribute's bound vertex buffer object
-    // uses the buffer object that was bound to GL_ARRAY_BUFFER at the moment the function was called
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*) nullptr);
-//    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*) nullptr);
+    glEnableVertexAttribArray(0);
 
-    // add 2nd triangle to VAO
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle2), triangle2, GL_STATIC_DRAW);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    //2nd triangle (another VAO and VBO)
-//    glBindVertexArray(VAOs[1]);
-//    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle2), triangle2, GL_STATIC_DRAW);
-//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*) nullptr);
-//    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -206,25 +152,25 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
+
+        float timeValue = glfwGetTime();
+        float greenValue = (sin(timeValue)/2.0f) + 0.5f;
+        int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+
         glBindVertexArray(VAO);
-        glBindVertexBuffer(0, VBOs[0], 0, 3 * sizeof(float));
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexBuffer(0, VBOs[1], 0, 3 * sizeof(float));
+        glBindVertexBuffer(0, VBO, 0, 3 * sizeof(float));
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glBindVertexArray(0); // optional
 
-//        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // optional: de-allocate all resources
-//    glDeleteVertexArrays(2, VAOs);
     glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(2, VBOs);
+    glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
-    glDeleteProgram(shaderProgram2);
 
     glfwTerminate();
 }
